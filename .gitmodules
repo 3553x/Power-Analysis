@@ -1,0 +1,3 @@
+[submodule "Arduino/libraries/aesavr"]
+	path = Arduino/libraries/aesavr
+	url = https://github.com/3553x/FAST-AES-AVR.git
