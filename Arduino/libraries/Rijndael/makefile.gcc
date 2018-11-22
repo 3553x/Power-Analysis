@@ -1,0 +1,62 @@
+#
+# Makefile for the Rijndael algorithm using GCC-based compilers
+#
+
+CC=	gcc
+CFLAGS=	-O6 -mcpu=pentiumpro -pedantic -fomit-frame-pointer -DINTEL_GCC
+
+OBJ=	rijndael-alg-ref.o rijndael-api-ref.o
+TRACE_OBJ=
+
+#
+# Rules
+#
+
+all:	rijndaeltest-ref.exe
+
+#
+# Dependencies
+# 
+
+rijndael-alg-ref.o:	rijndael-alg-ref.c rijndael-alg-ref.h
+	$(CC) $(CFLAGS) -c rijndael-alg-ref.c
+
+rijndael-api-ref.o:	rijndael-api-ref.c rijndael-api-ref.h
+	$(CC) $(CFLAGS) -c rijndael-api-ref.c
+
+rijndaeltest-ref.o:	rijndaeltest-ref.c rijndael-api-ref.h
+	$(CC) $(CFLAGS) -c rijndaeltest-ref.c
+
+rijndaeltest-ref.exe:	rijndaeltest-ref.o $(OBJ)
+	$(CC) $(CFLAGS) -erijndaeltest-ref.exe rijndaeltest-ref.o $(OBJ)
+
+#
+# Run the Tests
+#
+runtests: all
+	-rijndaeltest-ref.exe
+
+#
+# Clean
+#
+clean:
+	-del *.o
+
+cleanexes:
+	-del rijndaeltest-ref.exe
+
+cleantests:
+	-del ecb_vk.txt
+	-del ecb_vt.txt
+	-del ecb_tbl.txt
+	-del ecb_ivt.txt
+	-del ecb_e_m.txt
+	-del ecb_d_m.txt
+	-del cbc_e_m.txt
+	-del cbc_d_m.txt
+
+cleanall: clean cleanexes cleantests
+
+#
+# End Of Makefile
+
