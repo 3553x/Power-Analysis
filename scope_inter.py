@@ -5,7 +5,7 @@ MAX_READ = 56608 #determined with trial and error
 
 class Scope:
   
-  def __init__(addr=IP):
+  def __init__(self, addr=IP):
     self.instr = vxi11.Instrument(addr)
 
   def write(self, message):
@@ -18,7 +18,7 @@ class Scope:
     return self.instr.ask(message, MAX_READ)
 
   def ask_raw(self, data):
-    return self.instr.ask_raw(message, MAX_READ)
+    return self.instr.ask_raw(data, MAX_READ)
 
   #0 = not busy
   #1 = busy
@@ -73,7 +73,7 @@ class Scope:
 
   #last sample to transmit, max 10000
   def data_stop(self, arg):
-    self.write("DAT:STOP %s", %arg)
+    self.write("DAT:STOP %s" %arg)
 
   def waveform(self):
     return self.ask_raw(b"WAVF?")
