@@ -1,6 +1,7 @@
 #include <aes-avr.h>
 
-//#define DEBUG
+#define DEBUG
+#undef DEBUG
 #define BS 16
 #define TRIGGER_PIN 2
 #define KEY_MATERIAL {0xc1, 0xe5, 0xec, 0x7b, 0x1a, 0x30, 0xe0, 0xda, 0x98, 0xd3, 0x4f, 0xf0, 0x70, 0x30, 0xfe, 0x65}
@@ -25,12 +26,12 @@ void loop()
   Serial.println("NEED INPUT");
 #endif
 
-  //while(!Serial.available())
-  //{
-  //  asm("NOP"); 
-  //}
+  while(Serial.available() < BS)
+  {
+    asm("NOP"); 
+  }
   
-  //int result_read = Serial.readBytes(pt.data, BS);
+  int result_read = Serial.readBytes(pt.data, BS);
   
 #ifdef DEBUG
   Serial.print("GOT: ");
@@ -41,7 +42,7 @@ void loop()
   digitalWrite(TRIGGER_PIN, HIGH);
   ct = encrypt_data(pt, expanded_key);
   digitalWrite(TRIGGER_PIN, LOW);
-  Serial.write(ct.data, sizeof(ct.data));  
+  Serial.write(ct.data, sizeof(ct.data));
 }
 
 
