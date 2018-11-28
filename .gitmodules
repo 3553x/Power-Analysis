@@ -1,3 +1,6 @@
 [submodule "Arduino/libraries/aesavr"]
 	path = Arduino/libraries/aesavr
 	url = https://github.com/3553x/FAST-AES-AVR.git
+[submodule "converter"]
+	path = converter
+	url = https://github.com/3553x/Tektronix-File-Converter.git
