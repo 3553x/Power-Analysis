@@ -7,7 +7,7 @@ KEY = "c1e5ec7b1a30e0da98d34ff07030fe65"
 
 class ArdSerial:
 
-    def __init__ (self, dev="/dev/ttyACM0"):
+    def __init__ (self, dev="/dev/ttyACM1"):
         self.serial = serial.Serial(dev, BAUD_RATE)
         time.sleep(2) #Write is missed otherwise
 
