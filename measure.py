@@ -5,23 +5,26 @@ from converter.tektronix_converter import convert
 
 from Crypto.Cipher import AES
 from os import urandom
+import time
 
 def init_scope(scope):
-  scope.acquire_stopafter("RUNST")
+  scope.acquire_stopafter("SEQ")
+  scope.data_source("MATH")
   scope.data_encoding("RIB")
   scope.data_width("2")
   scope.data_start("1")
   scope.data_stop("10000")
-  scope.acquire_state("RUN")
-  while("ARMED" in scope.trigger_state()):
-    pass
 
 def take_measurement(scope, arduino, cleartext):
-  ciphertext = arduino.encrypt(cleartext)
-  while(scope.busy() != ":BUSY 0"):
+  scope.acquire_state("RUN")
+  while("READY" not in scope.trigger_state()):
     pass
-    
-  scope.data_source("MATH")
+
+  ciphertext = arduino.encrypt(cleartext)
+
+  while("SAV" not in scope.trigger_state()):
+    pass
+
   csv = convert(scope.waveform())
 
   return (ciphertext, csv)
@@ -48,8 +51,12 @@ def gather_data(n):
     capt_f.write(csv)
     pt_f.write(plaintext)
     ct_f.write(ciphertext)
+
+  capt_f.close()
+  pt_f.close()
+  ct_f.close()
  
 
 
 if(__name__ == "__main__"):
-  gather_data(100)
+  gather_data(10_000)
