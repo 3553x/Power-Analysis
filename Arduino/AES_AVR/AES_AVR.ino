@@ -38,10 +38,11 @@ void loop()
   Serial.println(result_read);
   Serial.write(pt.data, sizeof(pt.data));
 #endif
-  
+  noInterrupts();
   digitalWrite(TRIGGER_PIN, HIGH);
   ct = encrypt_data(pt, expanded_key);
   digitalWrite(TRIGGER_PIN, LOW);
+  interrupts();
   Serial.write(ct.data, sizeof(ct.data));
 }
 
