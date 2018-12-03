@@ -5,7 +5,7 @@ from converter.tektronix_converter import convert
 
 from Crypto.Cipher import AES
 from os import urandom
-import time
+import time, signal
 
 def init_scope(scope):
   scope.acquire_stopafter("SEQ")
@@ -47,10 +47,15 @@ def gather_data(n):
     plaintext = urandom(BS)
     (ciphertext, csv) = take_measurement(scope, arduino, plaintext)
     assert ciphertext == crypt.encrypt(plaintext)
-    
+     
+    s = signal.signal(signal.SIGINT, signal.SIG_IGN)
     capt_f.write(csv)
+    capt_f.flush()
     pt_f.write(plaintext)
+    pt_f.flush()
     ct_f.write(ciphertext)
+    ct_f.flush()
+    signal.signal(signal.SIGINT, s)
 
   capt_f.close()
   pt_f.close()
@@ -59,4 +64,4 @@ def gather_data(n):
 
 
 if(__name__ == "__main__"):
-  gather_data(10_000)
+  gather_data(100)
