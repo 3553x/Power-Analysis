@@ -1,0 +1,62 @@
+#
+# Makefile for the Rijndael algorithm using Visual C compiler
+#
+
+CC=	cl
+CFLAGS=	/G6 /Ox
+
+OBJ=	rijndael-alg-ref.obj rijndael-api-ref.obj
+TRACE_OBJ=
+
+#
+# Rules
+#
+
+all:	rijndaeltest-ref.exe
+
+#
+# Dependencies
+# 
+
+rijndael-alg-ref.obj:	rijndael-alg-ref.c rijndael-alg-ref.h
+	$(CC) $(CFLAGS) /c rijndael-alg-ref.c
+
+rijndael-api-ref.obj:	rijndael-api-ref.c rijndael-api-ref.h
+	$(CC) $(CFLAGS) /c rijndael-api-ref.c
+
+rijndaeltest-ref.obj:	rijndaeltest-ref.c rijndael-api-ref.h
+	$(CC) $(CFLAGS) /c rijndaeltest-ref.c
+
+rijndaeltest-ref.exe:	rijndaeltest-ref.obj $(OBJ)
+	$(CC) $(CFLAGS) /Ferijndaeltest-ref.exe rijndaeltest-ref.obj $(OBJ)
+
+#
+# Run the Tests
+#
+runtests: all
+	-rijndaeltest-ref.exe
+
+#
+# Clean
+#
+clean:
+	-del *.obj
+
+cleanexes:
+	-del rijndaeltest-ref.exe
+
+cleantests:
+	-del ecb_vk.txt
+	-del ecb_vt.txt
+	-del ecb_tbl.txt
+	-del ecb_ivt.txt
+	-del ecb_e_m.txt
+	-del ecb_d_m.txt
+	-del cbc_e_m.txt
+	-del cbc_d_m.txt
+
+cleanall: clean cleanexes cleantests
+
+#
+# End Of Makefile
+
