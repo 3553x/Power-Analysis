@@ -1,17 +1,18 @@
 #!/usr/bin/python3
 from arduino_inter import BS
+import numpy
 import pandas
+import matplotlib.pyplot as plt
 
 class FileParser:
-
-  def __init__(self, samples_file, ct_file):
-    all_dfs = pandas.read_csv(samples_file, header=None, names=["S", "V"])
+  def __init__(self, samples_file="captures", ct_file="ciphertext"):
+    all_dfs = pandas.read_csv(samples_file, squeeze=True, usecols=[1], header=None, names=["S", "V"], engine="c")
     assert len(all_dfs) % 10000 == 0
-    self.measurements = [all_dfs.iloc[i * 10000 : (i + 1) * 10000]]
+    self.measurements = numpy.split(all_dfs.values, 10_000)
 
     self.n = len(self.measurements)
 
-    with open(ct, 'rb') as f:
+    with open(ct_file, 'rb') as f:
       raw_ct = f.read()
     self.ct = [raw_ct[i * BS : (i + 1) * BS] for i in range(self.n)]
 
@@ -59,27 +60,27 @@ def selector_function(ciphertext, guess, n):
  return pre_sbox & 1
 
 def DPA_bytes(parser, n):
-  guesses = dict()
+  current_samples = dict()
 
   for guess in range(256):
-    sel_1 = pandas.Series([0]*10000)
+    print(guess)
+    sel_1 = numpy.zeros(10_000)
     sel_1_cnt = 0
-    sel_0 = pandas.Series([0]*10000)
+    sel_0 = numpy.zeros(10_000)
     sel_0_cnt = 0
 
     for current_measurement in range(parser.n):
-      if(selector_function(parser.ct[current_measurement], guess)):
-        sel_1 += parser.measurements[current_measurement][0]
+      if(selector_function(parser.ct[current_measurement], guess, n)):
+        sel_1 += parser.measurements[current_measurement]
         sel_1_cnt += 1
-      else
-        sel_0 += parser.measurements[current_measurement][0]
+      else:
+        sel_0 += parser.measurements[current_measurement]
         sel_0_cnt += 1
 
-    current_samples = sel_1 / sel_1_cnt - sel_0 / sel_0_cnt
-    guesses[guess] = current_samples.abs().max()
+    current_samples[guess] = sel_1 / sel_1_cnt - sel_0 / sel_0_cnt
 
 
-  return guesses
+  return current_samples
       
 
 def DPA(parser):
@@ -89,3 +90,13 @@ def DPA(parser):
     key.append(guesses)
   
   return key
+
+
+if(__name__ == "__main__"):
+  a = FileParser()
+  b = DPA_bytes(a, 0)
+  for x in b:
+    plt.plot(b[x])
+  plt.show()
+
+  print(b)
