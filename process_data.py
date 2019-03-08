@@ -4,11 +4,14 @@ import numpy
 import pandas
 import matplotlib.pyplot as plt
 
+N_SAMPLES = 10000
+MEASUREMENTS = 10_000
+
 class FileParser:
   def __init__(self, samples_file="captures", ct_file="ciphertext"):
-    all_dfs = pandas.read_csv(samples_file, squeeze=True, usecols=[1], header=None, names=["S", "V"], engine="c")
-    assert len(all_dfs) % 10000 == 0
-    self.measurements = numpy.split(all_dfs.values, 10_000)
+    all_dfs = pandas.read_csv(samples_file, nrows=MEASUREMENTS * N_SAMPLES, squeeze=True, usecols=[1], header=None, names=["S", "V"], engine="c")
+    assert len(all_dfs) % N_SAMPLES == 0
+    self.measurements = numpy.split(all_dfs.values, MEASUREMENTS)
 
     self.n = len(self.measurements)
 
@@ -34,54 +37,50 @@ inverse_sbox = [0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3
                 0xA0, 0xE0, 0x3B, 0x4D, 0xAE, 0x2A, 0xF5, 0xB0, 0xC8, 0xEB, 0xBB, 0x3C, 0x83, 0x53, 0x99, 0x61,
                 0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D]
 
-def inverse_shift(data):
-  indexes = [0, 13, 10, 7,
-             4, 1, 14, 11,
-             8, 5, 2, 15,
-             12, 9, 6, 3]
-  return bytearray([data[x] for x in indexes])
-
 #https://stackoverflow.com/questions/15540798/count-number-of-ones-in-a-given-integer
-def calc_hamming_weight(number):
+def h_weight(number):
   weight = 0
   while(number):
-    w += 1
-    n &= n - 1
+    weight += 1
+    number &= number - 1
   return weight
 
-def calc_hamming_distance(a, b):
-  n = a ^ b
-  return calc_hamming_weight(n)
-
-def selector_function(ciphertext, guess, n):
+def selector_function(ciphertext, guess, n, i):
  pre_add_roundkey = ciphertext[n] ^ guess
  #no need to reverse shift rows, sub bytes doesn't care about order
  pre_sbox = inverse_sbox[pre_add_roundkey]
- return pre_sbox & 1
+ return bool(pre_sbox & 2**i)
 
 def DPA_bytes(parser, n):
-  current_samples = dict()
+  current_samples = []
 
   for guess in range(256):
     print(guess)
-    sel_1 = numpy.zeros(10_000)
+    sel_1 = numpy.zeros(N_SAMPLES)
     sel_1_cnt = 0
-    sel_0 = numpy.zeros(10_000)
+    sel_0 = numpy.zeros(N_SAMPLES)
     sel_0_cnt = 0
 
     for current_measurement in range(parser.n):
-      if(selector_function(parser.ct[current_measurement], guess, n)):
-        sel_1 += parser.measurements[current_measurement]
-        sel_1_cnt += 1
-      else:
-        sel_0 += parser.measurements[current_measurement]
-        sel_0_cnt += 1
-
-    current_samples[guess] = sel_1 / sel_1_cnt - sel_0 / sel_0_cnt
-
+      for i in range(8):
+        if(selector_function(parser.ct[current_measurement], guess, n, i)):
+            sel_1 += parser.measurements[current_measurement]
+            sel_1_cnt += 1
+        else:
+            sel_0 += parser.measurements[current_measurement]
+            sel_0_cnt += 1
+    current_samples.append(sel_1 / sel_1_cnt - sel_0 / sel_0_cnt)
 
   return current_samples
-      
+     
+def gen_H_con(parser, n):
+  H = numpy.zeros([parser.n, 256])
+
+  for cur_mes in range(parser.n):
+    for cand_key in range(256):
+      weight = h_weight(inverse_sbox[cand_key ^ parser.cs[cur_mes]])
+        
+      H[cur_mes][cand_key] = selector_function(parser.ct[cur_mes], cand_key, n)
 
 def DPA(parser):
   key = []
@@ -94,9 +93,5 @@ def DPA(parser):
 
 if(__name__ == "__main__"):
   a = FileParser()
-  b = DPA_bytes(a, 0)
-  for x in b:
-    plt.plot(b[x])
-  plt.show()
-
-  print(b)
+  b = DPA(a)
+  numpy.save("DPA_array", b)
