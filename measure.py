@@ -12,7 +12,7 @@ def init_scope(scope):
   scope.data_source("MATH")
   scope.data_encoding("RIB")
   scope.data_width("2")
-  scope.data_start("2501")
+  scope.data_start("1")
   scope.data_stop("10000")
 
 def take_measurement(scope, arduino, cleartext):
