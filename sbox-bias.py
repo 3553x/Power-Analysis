@@ -35,17 +35,19 @@ inverse_sbox = [0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3
 
 
 def corr_k(k, a, b):
-    corr = -128
+    corr = 0
     for plaintext in range(256):
-            if( bool(inverse_sbox[plaintext^k] & 2**a) == bool(inverse_sbox[plaintext] & 2**b)):
-                corr += 1
+            if(inverse_sbox[plaintext^k] & 2**a):
+                corr += bool(inverse_sbox[plaintext] & 2**b)
+            else:
+                corr -= bool(inverse_sbox[plaintext] & 2**b)
             
     return corr
 
 def corr(k, a):
-    l = []
+    l = 0
     for x in range(8):
-        l.append(corr_k(k, a, x))
+        l += corr_k(k, a, x)
 
     return l
 
@@ -58,3 +60,7 @@ def corr_all():
         l.append(l1)
 
     return l
+
+z = corr_all()
+z = [sum(x) for x in z]
+

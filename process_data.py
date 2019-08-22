@@ -5,19 +5,27 @@ import pandas
 import matplotlib.pyplot as plt
 
 N_SAMPLES = 10000
-MEASUREMENTS = 10_000
+MEASUREMENTS = 10_000 #7500 needed for attack to work with multi_bit
+
+MULTI_BIT = True
 
 class FileParser:
   def __init__(self, samples_file="captures", ct_file="ciphertext"):
+    print("Reading file...")
     all_dfs = pandas.read_csv(samples_file, nrows=MEASUREMENTS * N_SAMPLES, squeeze=True, usecols=[1], header=None, names=["S", "V"], engine="c")
+    print("Done")
     assert len(all_dfs) % N_SAMPLES == 0
+    print("Splitting Arrays...")
     self.measurements = numpy.split(all_dfs.values, MEASUREMENTS)
+    print("Done")
 
     self.n = len(self.measurements)
 
+    print("Reading Ciphertext...")
     with open(ct_file, 'rb') as f:
       raw_ct = f.read()
     self.ct = [raw_ct[i * BS : (i + 1) * BS] for i in range(self.n)]
+    print("Done")
 
 
 inverse_sbox = [0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
@@ -53,16 +61,20 @@ def selector_function(ciphertext, guess, n, i):
 
 def DPA_bytes(parser, n):
   current_samples = []
+  print("0% Done", end="")
 
   for guess in range(256):
-    print(guess)
+    if(guess % 3 == 0):
+        print("\r%d%% Done" % (guess * 100 / 255), end="")
     sel_1 = numpy.zeros(N_SAMPLES)
     sel_1_cnt = 0
     sel_0 = numpy.zeros(N_SAMPLES)
     sel_0_cnt = 0
 
+    limit = 8 if MULTI_BIT else 1
+
     for current_measurement in range(parser.n):
-      for i in range(8):
+      for i in range(limit):
         if(selector_function(parser.ct[current_measurement], guess, n, i)):
             sel_1 += parser.measurements[current_measurement]
             sel_1_cnt += 1
@@ -70,6 +82,8 @@ def DPA_bytes(parser, n):
             sel_0 += parser.measurements[current_measurement]
             sel_0_cnt += 1
     current_samples.append(sel_1 / sel_1_cnt - sel_0 / sel_0_cnt)
+
+  print("\nDone!")
 
   return current_samples
      
@@ -83,15 +97,42 @@ def gen_H_con(parser, n):
       H[cur_mes][cand_key] = selector_function(parser.ct[cur_mes], cand_key, n)
 
 def DPA(parser):
+  print("Starting DPA attack on whole key (16 bytes)")
   key = []
   for byte in range(16):
+    print("Attacking byte %d" % byte)
     guesses = DPA_bytes(parser, byte)
     key.append(guesses)
-  
+ 
+  print("DPA attack done")
   return key
 
 
+def performance_eval(a):
+  global MULTI_BIT
+  for n in range(10_000, 0, -1000):
+    print("Running with n = %d" % n)
+    a.n = n
+
+    MULTI_BIT = True
+    result = DPA(a)
+    numpy.save("DPA_array_%d_multi" % n, result)
+
+    print("Running with false")
+
+    MULTI_BIT = False
+    result = DPA(a)
+    numpy.save("DPA_array_%d_single" %n, result)
+
 if(__name__ == "__main__"):
   a = FileParser()
-  b = DPA(a)
-  numpy.save("DPA_array", b)
+  #b = DPA(a)
+  #b = DPA_bytes(a, 14)
+  #numpy.save("DPA_array", b)
+  #performance_eval(a)
+  a.n = 10_000
+  MULTI_BIT = False
+  #DPA(a)
+  r = DPA_bytes(a, 0)
+  plt.plot(r[177])
+  plt.savefig("random.png")
