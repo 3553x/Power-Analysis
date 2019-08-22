@@ -23,3 +23,6 @@ A small python module that interfaces with the oscilloscope and exposes a tiny p
 
 ### process_data.py
 Perform the attack on captured data.
+
+### recover_initial_key.py
+A short script that takes the final roundkey and returns the initial AES128 key.
